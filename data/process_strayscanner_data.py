@@ -15,8 +15,8 @@ import cv2
 import random
 
 
-DEPTH_WIDTH = 256
-DEPTH_HEIGHT = 192
+# DEPTH_WIDTH = 256
+# DEPTH_HEIGHT = 192
 MAX_DEPTH = 20.0
 np.random.seed(0)
 """
@@ -73,73 +73,89 @@ def make_dir(path):
         os.mkdir(path)
 
 def process_stray_scanner(args, data,split='train'):
-    rgb_path = "{}/rgb_{}".format(args.basedir, split)
-    depth_path = "{}/depth_{}".format(args.basedir, split)
-    confidence_path = "{}/confidence_{}".format(args.basedir, split)
-    near_path = "{}/near_bound_{}".format(args.basedir, split)
-    far_path = "{}/far_bound_{}".format(args.basedir, split)
+    #generate folder
+    split_path = "{}/{}".format(args.basedir, split)
+    rgb_path = "{}/images".format(split_path)
+    sparse_path = "{}/sparse".format(split_path)
+
+    make_dir(split_path)
     make_dir(rgb_path)
-    make_dir(depth_path)
-    make_dir(confidence_path)
-    make_dir(near_path)
-    make_dir(far_path)
+    make_dir(sparse_path)
 
     n = data['odometry'].shape[0]
     num_train = args.num_train
     num_val = 100
-    num_test = 1#args.num_test
+    num_test = 1  #args.num_test
 
-
-    all_index = np.arange(n)
+    # all_index = np.arange(n)
     # train_val_test_index = np.linspace(0, n, num_train+num_val, endpoint=False, dtype=int)
     train_val_index = np.linspace(0, n, num_train+num_val, endpoint=False, dtype=int)
     train_index = train_val_index[:-num_val]
     val_index = train_val_index[-num_val:]
 
 
-
-    rgbs = np.array(data['rgb'])
-    depths = np.array(data['depth'])
-    confidences = np.array(data['confidence'])
-    poses = np.array(data['odometry'])
     if split == 'train':
-        rgbs = rgbs[train_index]
-        depths = depths[train_index]
-        confidences = confidences[train_index]
-        poses = poses[train_index]
+        select_index = train_index
     elif split == 'val':
-        rgbs = rgbs[val_index]
-        depths = depths[val_index]
-        confidences = confidences[val_index]
-        poses = poses[val_index]
+        select_index = val_index
     # elif split == 'test':
     #     rgbs = rgbs[test_index]
-    #     depths = depths[test_index]
-    #     confidences = confidences[test_index]
     #     poses = poses[test_index]
-    # else:
-    #     rgbs = rgbs[train_val_index]
-    #     depths = depths[train_val_index]
-    #     confidences = confidences[train_val_index]
-    #     poses = poses[train_val_index]
 
-    # nears, fars = precompute_depth_sampling(args.near_range,args.far_range, depths, confidences) #(N,H,W)
+    rgbs = np.array(data['rgb'])
+    poses = np.array(data['odometry'])
+    rgbs = rgbs[select_index]
+    poses = poses[select_index]
 
-    pose_fname = "{}/odometry_{}.csv".format(args.basedir, split)
+
+
+    # #cameras.txt
+    H,W = data['rgb'][0].shape[:-1]
+    intrinsic = data['intrinsics']
+    camera_file = open( os.path.join(sparse_path, 'cameras.txt'), 'w')
+    # camera_id, model, W, H , fx, fy , cx ,cy
+    line = "1 PINHOLE "+ str(W) + ' ' + str(H) + ' ' + str(intrinsic[0][0]) + ' ' + str(intrinsic[1][1]) + ' ' + str(intrinsic[0][2]) + ' ' + str(intrinsic[1][2])
+    camera_file.write(line)
+    camera_file.close()
+
+
+    #points3D.txt
+    points3D_file = open(os.path.join(sparse_path, 'points3D.txt'),'w')
+    points3D_file.close()
+
+
+    #images folder and images.txt
+    pose_fname = "{}/images.txt".format(sparse_path)
     pose_file = open(pose_fname,'w')#,newline=','
     wr = csv.writer(pose_file)
-    for i, (rgb, depth, confidence, pose) in enumerate(zip(rgbs, depths,confidences,poses)): #,nears,fars
+    lines = []
+    for i, (rgb, pose) in enumerate(zip(rgbs,poses)): #,nears,fars
         #pose :  timestamp, frame, x, y, z, qx, qy, qz, qw
         skvideo.io.vwrite(os.path.join(rgb_path, str(int(pose[1])).zfill(5) + '.png'), rgb)
-        np.save(os.path.join(depth_path, str(int(pose[1])).zfill(5) + '.npy'), depth)
-        np.save(os.path.join(confidence_path, str(int(pose[1])).zfill(5) + '.npy'), confidence)
-        wr.writerow(pose)
-    pose_file.close()
+        # pose : # timestamp, frame(float ex 1.0), tx, ty, tz, qx, qy, qz, qw
+        # image_id(1,2,3,...) , camera_id, name(file name)
+        #TOOD : 여기 image id 1번 부터 시작해야하는지 확인하기 
+        # wr.writerow(pose)
+        line = []
+        line.append(str(i)) #TODO: i+1 ???
+        rt = pose[2:]
+        rt[0] = pose[-1] # qw
+        rt[1:4] = pose[5:8] # qx, qy, qz
+        rt[4:] = pose[2:5] # tx, ty, tz
+        for i in rt :  # qw, qx, qy, qz ,tx, ty, tz
+            line.append(str(i))
+        line.append(str(1)) # camera_id
+        line.append( str(int(pose[1])).zfill(5) + '.png' ) # name
+        lines.append(' '.join(line) + '\n')
+    # pose_file.close()
+
+    with open(pose_file, 'w') as f:
+        f.writelines(lines)
 
 
 
 def precompute_depth_sampling(origin_near,origin_far,depth,confidence):
-    #TODO : 지금 기준은 confidence , 성능 구리면 depth 값 기준으로도 더 조건 추가 4.5 이상이면 해보고 별로면
+
     depth_min, depth_max = origin_near, origin_far
     # [N,H,W]
     depth = torch.tensor(depth)
@@ -178,47 +194,31 @@ def precompute_depth_sampling(origin_near,origin_far,depth,confidence):
 def main(args):
     # data load
     data = {}
-    # intrinsics = np.loadtxt(os.path.join(args.basedir, 'camera_matrix.csv'), delimiter=',')
-    # data['intrinsics'] = intrinsics
+    intrinsics = np.loadtxt(os.path.join(args.basedir, 'camera_matrix.csv'), delimiter=',')
+    data['intrinsics'] = intrinsics
     odometry = np.loadtxt(os.path.join(args.basedir, 'odometry.csv'), delimiter=',', skiprows=1)
     data['odometry'] = odometry
 
-    depth_dir = os.path.join(args.basedir, 'depth')
-    depth_frames = [os.path.join(depth_dir, p) for p in sorted(os.listdir(depth_dir))]
-    depth_frames = [f for f in depth_frames if '.npy' in f or '.png' in f]
-    data['depth_frames'] = depth_frames
 
     rgbs=[]
-    confidences = []
-    depths = []
     video_path = os.path.join(args.basedir, 'rgb.mp4')
     video = skvideo.io.vreader(video_path)
     rgb_img_path = os.path.join(args.basedir, 'rgb')
     # make_dir(rgb_img_path)
     for i, (T_WC, rgb) in enumerate(zip(data['odometry'], video)):
-        #load confidence
-        confidence = load_confidence(os.path.join(args.basedir, 'confidence', f'{i:06}.png'))
-        confidences.append(confidence)
-
-        #load depth
+        # load depth
         print(f"Integrating frame {i:06}", end='\r')
-        depth_path = data['depth_frames'][i]
-        depth = load_depth(depth_path)
-        depths.append(depth)
 
         #rgb image
         rgb = Image.fromarray(rgb)
-        rgb = rgb.resize((DEPTH_WIDTH, DEPTH_HEIGHT))
+        # rgb = rgb.resize((DEPTH_WIDTH, DEPTH_HEIGHT))
         rgb = np.array(rgb)
         rgbs.append(rgb)
-        # skvideo.io.vwrite(os.path.join(rgb_img_path, str(i).zfill(5) + '.jpg'), rgb)
 
-    data['confidence'] = confidences
-    data['depth']=depths
+
     data['rgb']=rgbs
-
     # split = ['train', 'val', 'test'] # conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-    split = ['train']
+    split = ['train', 'val']
     for mode in split:
         process_stray_scanner(args,data,mode)
 
