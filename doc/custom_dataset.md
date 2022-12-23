@@ -8,9 +8,9 @@ you should probably follow the stepsbelow:
 2. 파일 구성 후 command 실행  : point_triangulator 까지 실행하면 sparse 모델 
 
 After this step, you should have the output (format is described in [output format](https://colmap.github.io/format.html#output-format)). 
-(1). camera intrinsics (camera.txt)
-(2). camera extrinsics (rotation & translation) (images.txt)
-(3). point cloud (points3D.txt)
+- camera intrinsics (camera.txt)
+- camera extrinsics (rotation & translation) (images.txt)
+- point cloud (points3D.txt)
 
 ## 2. Transform the camera model to PyTorch3D convention
 (details in https://github.com/facebookresearch/pytorch3d/blob/main/docs/notes/cameras.md)
