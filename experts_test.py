@@ -133,7 +133,7 @@ def main(cfg: DictConfig):
                 for label in ['gt', 'pred']:
                     img = images['color_{}'.format(label)]
                     img = tensor2Image(img)
-                    path = os.path.join(folder['color'][split], '{}-{:0>5}-{}.png'.format(split, i, label))
+                    path = os.path.join(folder['color'][split], '{}-{}-{:0>5}.png'.format(split, label,i))
                     img.save(path)
                 depth = images['depth_pred']
                 depths_all.append(depth)

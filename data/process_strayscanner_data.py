@@ -123,7 +123,7 @@ def process_stray_scanner(args, data,split='train'):
     points3D_file = open(os.path.join(sparse_path, 'points3D.txt'),'w')
     points3D_file.close()
 
-
+    #TODO : 코드 미완이라 확인해야함.
     #images folder and images.txt
     pose_fname = "{}/images.txt".format(sparse_path)
     pose_file = open(pose_fname,'w')#,newline=','
@@ -134,8 +134,7 @@ def process_stray_scanner(args, data,split='train'):
         skvideo.io.vwrite(os.path.join(rgb_path, str(int(pose[1])).zfill(5) + '.png'), rgb)
         # pose : # timestamp, frame(float ex 1.0), tx, ty, tz, qx, qy, qz, qw
         # image_id(1,2,3,...) , camera_id, name(file name)
-        #TOOD : 여기 image id 1번 부터 시작해야하는지 확인하기 
-        # wr.writerow(pose)
+        #TODO : 여기 image id 1번 부터 시작해야하는지 확인하기
         line = []
         line.append(str(i)) #TODO: i+1 ???
         rt = pose[2:]

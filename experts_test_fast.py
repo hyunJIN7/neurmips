@@ -300,11 +300,11 @@ def main(cfg: DictConfig):
         if not os.path.isdir(folder_path):
             os.makedirs(folder_path)
         # Save rendering images
-        image_path = os.path.join(folder_path, '{:0>5}-pred.png'.format(i))
+        image_path = os.path.join(folder_path, 'pred-{:0>5}.png'.format(i))
         image = tensor2Image(rgb_map)
         image.save(image_path)
         # Save ground truth images
-        gt_image_path = os.path.join(folder_path, '{:0>5}-gt.png'.format(i))
+        gt_image_path = os.path.join(folder_path, 'gt-{:0>5}.png'.format(i))
         gt_image = data['color']
         gt_image = tensor2Image(gt_image)
         gt_image.save(gt_image_path)
