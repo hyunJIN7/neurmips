@@ -21,7 +21,7 @@ MAX_DEPTH = 20.0
 np.random.seed(0)
 """
 conda activate StrayVisualizer-main
-python data/process_strayscanner_data.py --basedir ./data/hallway02 --num_train=150
+python data/process_strayscanner_data.py --basedir ./data/hallway02 --num_train=200
 
 """
 
@@ -82,33 +82,6 @@ def process_stray_scanner(args, data,split='train'):
     make_dir(rgb_path)
     make_dir(sparse_path)
 
-    n = data['odometry'].shape[0]
-    num_train = args.num_train
-    num_val = 100
-    num_test = 1  #args.num_test
-
-    # all_index = np.arange(n)
-    # train_val_test_index = np.linspace(0, n, num_train+num_val, endpoint=False, dtype=int)
-    train_val_index = np.linspace(0, n, num_train+num_val, endpoint=False, dtype=int)
-    train_index = train_val_index[:-num_val]
-    val_index = train_val_index[-num_val:]
-
-
-    if split == 'train':
-        select_index = train_index
-    elif split == 'val':
-        select_index = val_index
-    # elif split == 'test':
-    #     rgbs = rgbs[test_index]
-    #     poses = poses[test_index]
-
-    rgbs = np.array(data['rgb'])
-    poses = np.array(data['odometry'])
-    rgbs = rgbs[select_index]
-    poses = poses[select_index]
-
-
-
     # #cameras.txt
     H,W = data['rgb'][0].shape[:-1]
     intrinsic = data['intrinsics']
@@ -118,38 +91,70 @@ def process_stray_scanner(args, data,split='train'):
     camera_file.write(line)
     camera_file.close()
 
-
     #points3D.txt
     points3D_file = open(os.path.join(sparse_path, 'points3D.txt'),'w')
     points3D_file.close()
 
+
+
+    # sampling
+    n = data['odometry'].shape[0]
+    num_train = args.num_train
+    num_val = 100
+    all_index = np.arange(n)
+    train_index = np.linspace(0, n, num_train, endpoint=False, dtype=int)
+    # # if random sampling
+    val_index = np.delete(all_index,train_index)
+    val_index = np.random.choice(val_index,num_val,replace=False)
+    select_index = []
+
+    if split == 'train':
+        select_index = train_index
+    elif split == 'val':
+        select_index = val_index
+    # rgbs = np.array(data['rgb'])[select_index.astype(int)]
+    # poses = data['odometry'][select_index]
+    rgbs = data['rgb']
+    poses = data['odometry']
+
     #TODO : 코드 미완이라 확인해야함.
     #images folder and images.txt
-    pose_fname = "{}/images.txt".format(sparse_path)
-    pose_file = open(pose_fname,'w')#,newline=','
-    wr = csv.writer(pose_file)
+    pose_file = "{}/images.txt".format(sparse_path)
     lines = []
-    for i, (rgb, pose) in enumerate(zip(rgbs,poses)): #,nears,fars
+    for i in select_index:  #for i, (rgb, pose) in enumerate(zip(rgbs,poses)):
+        rgb = rgbs[i]
+        pose = poses[i]
+
         #pose :  timestamp, frame, x, y, z, qx, qy, qz, qw
-        skvideo.io.vwrite(os.path.join(rgb_path, str(int(pose[1])).zfill(5) + '.png'), rgb)
+        skvideo.io.vwrite(os.path.join(rgb_path, str(int(i)).zfill(5) + '.png'), rgb)
         # pose : # timestamp, frame(float ex 1.0), tx, ty, tz, qx, qy, qz, qw
-        # image_id(1,2,3,...) , camera_id, name(file name)
-        #TODO : 여기 image id 1번 부터 시작해야하는지 확인하기
+        # image_id(1,2,3,...),  qw, qx, qy, qz ,tx, ty, tz , camera_id, name(file name)
         line = []
-        line.append(str(i)) #TODO: i+1 ???
-        rt = pose[2:]
-        rt[0] = pose[-1] # qw
-        rt[1:4] = pose[5:8] # qx, qy, qz
-        rt[4:] = pose[2:5] # tx, ty, tz
-        for i in rt :  # qw, qx, qy, qz ,tx, ty, tz
-            line.append(str(i))
+        line.append(str(i+1)) #TODO: i+1 ???
+
+        # rt = pose[2:]
+        # rt[0] = pose[-1] # qw
+        # qxyz = pose[-4:-1]
+        # rt[1:4] = pose[-4:-1] # qx, qy, qz
+        # txyz = pose[2:5]
+        # rt[4:] = pose[2:5] # tx, ty, tz
+                        #tx, ty, tz, qx, qy, qz, qw
+        # for j in rt :  # qw, qx, qy, qz ,tx, ty, tz
+        #     line.append(str(j))
+
+        index = [-1, -4, -3, -2, 2, 3, 4] # qw, qx, qy, qz ,tx, ty, tz
+        for j in index:
+            line.append(str(pose[j]))
+
+
         line.append(str(1)) # camera_id
-        line.append( str(int(pose[1])).zfill(5) + '.png' ) # name
-        lines.append(' '.join(line) + '\n')
+        line.append( str(int(pose[1])).zfill(5) + '.png') # name
+        lines.append(' '.join(line) + '\n' + '\n')
     # pose_file.close()
 
     with open(pose_file, 'w') as f:
         f.writelines(lines)
+
 
 
 
