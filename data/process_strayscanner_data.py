@@ -23,6 +23,8 @@ np.random.seed(0)
 conda activate StrayVisualizer-main
 python data/process_strayscanner_data.py --basedir ./data/hallway02 --num_train=200
 
+conda activate StrayVisualizer-main
+python data/process_strayscanner_data.py --basedir ./data/tree --num_train=300 --num_val=200
 """
 
 def config_parser():
@@ -32,6 +34,8 @@ def config_parser():
     parser.add_argument("--basedir", type=str, default='./data/strayscanner/computer',
                         help='input data directory')
     parser.add_argument("--num_train", type=int, default=120,
+                        help='number of train data')
+    parser.add_argument("--num_val", type=int, default=100,
                         help='number of train data')
     parser.add_argument("--num_test", type=int, default=12,
                         help='number of train data')
@@ -100,7 +104,7 @@ def process_stray_scanner(args, data,split='train'):
     # sampling
     n = data['odometry'].shape[0]
     num_train = args.num_train
-    num_val = 100
+    num_val = args.num_val
     all_index = np.arange(n)
     train_index = np.linspace(0, n, num_train, endpoint=False, dtype=int)
     # # if random sampling
@@ -208,6 +212,8 @@ def main(args):
     video_path = os.path.join(args.basedir, 'rgb.mp4')
     video = skvideo.io.vreader(video_path)
     rgb_img_path = os.path.join(args.basedir, 'rgb')
+
+
     # make_dir(rgb_img_path)
     for i, (T_WC, rgb) in enumerate(zip(data['odometry'], video)):
         # load depth

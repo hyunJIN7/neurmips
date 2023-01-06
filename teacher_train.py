@@ -11,6 +11,7 @@ from mnh.stats import StatsLogger
 from mnh.utils import *
 from teacher_forward import *
 
+
 CURRENT_DIR = os.path.realpath('.')
 CONFIG_DIR = os.path.join(CURRENT_DIR, 'configs')
 CHECKPOINT_DIR = os.path.join(CURRENT_DIR, 'checkpoints')

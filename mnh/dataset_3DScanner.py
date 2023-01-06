@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from pytorch3d.renderer import PerspectiveCameras
-from .utils import random_sample_points, get_image_tensors
+from .utils import random_sample_points, get_scanner_image_tensors
 
 def get_camera_intrinsic(path):
     with open(path, 'r') as file:
@@ -25,7 +25,7 @@ def screen_to_ndc(intrinsic):
     px_new = -(px - half_w) / half_w
     py_new = -(py - half_h) / half_h
     return [W, H, fx_new, fy_new, px_new, py_new]
-class TanksAndTemplesDataset(Dataset):
+class ScannerDataset(Dataset):
     def __init__(
         self,
         folder:str,
@@ -42,12 +42,6 @@ class TanksAndTemplesDataset(Dataset):
         intrinsic = get_camera_intrinsic(os.path.join(folder, 'cameras.txt'))
         self.intrinsic = intrinsic
 
-        # convert to NDC coordinates
-        intrinsic = screen_to_ndc(intrinsic)
-        W, H, fx, fy, px, py = intrinsic
-
-        self.focal_length = ((fx,fy),)
-        self.principal_point = ((px,py),)
         cameras = []
         for i in range(R.size(0)):
             cam = PerspectiveCameras(
@@ -61,7 +55,15 @@ class TanksAndTemplesDataset(Dataset):
             cameras.append(cam)
         self.cameras = cameras
 
-        images = get_image_tensors(os.path.join(folder, 'images'))
+        # convert to NDC coordinates
+        intrinsic = screen_to_ndc(intrinsic)
+        W, H, fx, fy, px, py = intrinsic
+
+        self.focal_length = ((fx,fy),)
+        self.principal_point = ((px,py),)
+
+
+        images = get_scanner_image_tensors(os.path.join(folder, 'images'))
         self.images = images
 
         self.sparse_points = None
@@ -73,6 +75,16 @@ class TanksAndTemplesDataset(Dataset):
             dense_points = torch.FloatTensor(np.load(dense_path))
             dense_points = random_sample_points(dense_points, sample_rate)
             self.dense_points = dense_points
+
+        select_index = []
+        # if split == 'train':
+        # else:
+        # TODO : train datat sampling
+        """
+        
+        """
+
+
 
     def get_camera_centers(self):
         R, T = self.R, self.T 

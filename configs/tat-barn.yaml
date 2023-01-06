@@ -12,7 +12,7 @@ data:
   path: 'data/TanksAndTemple/Barn'
   image_size: [1080, 1920]
   sample_rate: 0.2
-  batch_points: 10000
+  batch_points: 1000
   white_bg: True
 checkpoint:
   teacher: 'tat-barn-teacher.pth'
