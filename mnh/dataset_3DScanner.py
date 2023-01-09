@@ -5,10 +5,9 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from pytorch3d.renderer import PerspectiveCameras
-from .utils import random_sample_points, get_image_tensors
+from .utils import random_sample_points, get_image_tensors, get_depth_and_confidence
 
-IMAGE_WIDTH = 1920
-IMAGE_HEIGHT = 1440
+
 DEPTH_WIDTH = 256
 DEPTH_HEIGHT = 192
 def get_camera_intrinsic(path):
@@ -21,7 +20,7 @@ def get_camera_intrinsic(path):
     with open(path, 'r') as file:
         lines = file.readlines()
         lines = lines[0].split(' ')  # fx 0 cx 0 fy cy 0 0 1
-        W, H = IMAGE_WIDTH ,IMAGE_HEIGHT #int(lines[2]), int(lines[3])
+        W, H = DEPTH_WIDTH ,DEPTH_HEIGHT #int(lines[2]), int(lines[3])
         fx, fy = float(lines[0]), float(lines[4])
         px, py = float(lines[2]), float(lines[5])
     return [W, H, fx, fy, px, py]
@@ -44,12 +43,15 @@ class ScannerDataset(Dataset):
             batch_points: int = 10000
     ):
 
-
         pose_fname = os.path.join(folder, 'poses.txt')
         with open(pose_fname, "r") as f:
             cam_pose_lines = f.readlines()
         R,T = [],[]
-        t1 = np.array([[1,0,0],[0,1,0],[0,0,-1]])
+        t1 = np.array([[1,0,0],[0,1,0],[0,0,-1]])  # 1
+        t1 = np.array([[1,0,0],[0,1,0],[0,0,1]])  # 2
+        t1 = np.array([[-1,0,0],[0,1,0],[0,0,-1]])  # 3
+
+
         for line in cam_pose_lines:
             line_data_list = line.split(' ')
             if len(line_data_list) == 0:
@@ -90,6 +92,9 @@ class ScannerDataset(Dataset):
 
         images = get_image_tensors(os.path.join(folder, 'images'))
         self.images = images
+
+        depth,confi = get_depth_and_confidence(folder)
+        self.depth, self.confidence = depth, confi
 
         self.sparse_points = None
         self.dense_points = None
@@ -133,6 +138,8 @@ class ScannerDataset(Dataset):
             'camera': self.cameras[index],
             'color': self.images[index],
             'points': points,
+            'depth': self.depth,
+            'confidence': self.confidence,
         }
         return data
 

@@ -22,22 +22,16 @@ import shutil
 
 
 
-IMAGE_WIDTH = 1920
-IMAGE_HEIGHT = 1440
-DEPTH_WIDTH = 256
-DEPTH_HEIGHT = 192
+# DEPTH_WIDTH = 256
+# DEPTH_HEIGHT = 192
 MAX_DEPTH = 20.0
 np.random.seed(0)
 """
-
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_train=150 --num_val=30 --point_fname=XYZ_color.txt
-
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/renaissance_03 --num_train=120 --num_val=25 --point_fname=XYZ_color.txt
-
-
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x --num_train=16 --num_val=0
 
 
 """
+
 
 def config_parser():
     import configargparse
@@ -70,6 +64,10 @@ def config_parser():
 
     return parser
 
+# def load_depth(path, confidence=None):
+#     depth_mm = np.array(Image.open(path))
+#     depth_m = depth_mm.astype(np.float32) / 1000.0
+#     return depth_m
 
 def load_depth(path, confidence=None):
     extension = os.path.splitext(path)[1]
@@ -92,41 +90,26 @@ def make_dir(path):
 def process_3DScanner_data(args,mode,selected_index):
     mode_path = "{}/{}".format(args.basedir, mode)
     images_path = os.path.join(mode_path, "images")
-    depth_path = os.path.join(mode_path, "depth")
-    confi_path = os.path.join(mode_path, "confidence")
-
     make_dir(mode_path)
     make_dir(images_path)
-    make_dir(depth_path)
-    make_dir(confi_path)
-
 
     # point cloud
-    shutil.copy2(os.path.join(args.basedir, "XYZ_color.txt"),os.path.join(args.basedir, "point_color.txt"))
-    shutil.copy2(os.path.join(args.basedir, "point_color.txt"),os.path.join(mode_path, "point_color.txt"))
+    # shutil.copy2(os.path.join(args.basedir, "XYZ_color.txt"),os.path.join(args.basedir, "point_color.txt"))
+    # shutil.copy2(os.path.join(args.basedir, "point_color.txt"),os.path.join(mode_path, "point_color.txt"))
 
     poses = []
+
     for i in selected_index:
+
         # img
         img_fname = "{}/frame_{}.jpg".format(args.basedir, str(i).zfill(5) )
         img = PIL.Image.fromarray(imageio.imread(img_fname))
-        # img = Image.fromarray(img)
-        img = img.resize((DEPTH_WIDTH, DEPTH_HEIGHT))
         img = np.array(img)
         save_img_fame = os.path.join(images_path, "frame_{}".format(str(i)).zfill(5) + '.jpg')
         skvideo.io.vwrite(save_img_fame, img)
-
-        #depth
-        depth_fname = "{}/depth_{}.png".format(args.basedir, str(i).zfill(5))
-        depth = load_depth(depth_fname)
-        depth_fname = "{}/dpeth_{}.npy".format(depth_path, str(i).zfill(5) )
-        np.save(depth_fname, depth)
-
-        #load confidence
-        confi_fname = "{}/conf_{}.png".format(args.basedir, str(i).zfill(5)) #os.path.join(args.basedir, 'confidence', f'{i:06}.png')
-        confidence = load_confidence(confi_fname)
-        confi_fname = "{}/conf_{}.png".format(confi_path, str(i).zfill(5))
-        np.save(confi_fname, confidence)
+        # image = PIL.Image.fromarray(imageio.imread(image_fname))
+        # skvideo.io.vwrite(os.path.join(rgb_path, str(int(pose[1])).zfill(5) + '.png'), rgb)
+        # img.save(path)
 
         #pose
         pose_fname = "{}/frame_{}.json".format(args.basedir, str(i).zfill(5))
@@ -134,6 +117,7 @@ def process_3DScanner_data(args,mode,selected_index):
         rt = np.array(f["cameraPoseARFrame"]) # rotation matrix line
         rt[-1] = 1
         rt_line = [str(e) for e in rt]
+
         poses.append(' '.join(rt_line) + '\n')
 
     #pose save
@@ -144,11 +128,7 @@ def process_3DScanner_data(args,mode,selected_index):
     #intrinsic save
     pose_fame = "{}/frame_{}.json".format(args.basedir, str(0).zfill(5))
     f = json.load(open(pose_fame,'r'))
-    intr = np.array(f["intrinsics"],dtype=float)
-    intr[0] = intr[0] * float(DEPTH_WIDTH) / IMAGE_WIDTH
-    intr[2] = intr[2] * float(DEPTH_WIDTH) / IMAGE_WIDTH
-    intr[4] = intr[4] * float(DEPTH_HEIGHT) / IMAGE_HEIGHT
-    intr[5] = intr[5] * float(DEPTH_HEIGHT) / IMAGE_HEIGHT
+    intr = np.array(f["intrinsics"])
     intr[-1] = 1
     intr_fname = os.path.join(mode_path,'intrinsic.txt')
     f = open(intr_fname, 'w')
@@ -156,9 +136,17 @@ def process_3DScanner_data(args,mode,selected_index):
         f.write(str(e)+" ")
     f.close()
 
+
+
+
+
+
 def main(args):
     #rgb images
     all_index = np.array([int(fname[-9:-4]) for fname in glob.glob(os.path.join(args.basedir, 'frame*.jpg'))])
+
+
+
     all_index.sort()
     # 이미지 파일이 있는 pose 파일 골라내기
     # frame_paths = list(sorted(glob(os.path.join(args.basedir, "*.json"))))

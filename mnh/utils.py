@@ -93,6 +93,24 @@ def is_image_file(file_name):
         return False
 
 
+def get_depth_and_confidence(folder):
+    depth_path = os.path.join(folder, 'depth')
+    depth_names = sorted(os.path.join(depth_path, name) for name in os.listdir(depth_path))
+    depths = []
+    for i in range(len(depth_names)):
+        depth = torch.from_numpy(np.load(depth_names[i])).float()
+        depths.append(depth)
+    depths = torch.stack(depths, dim=0)
+
+    confi_path = os.path.join(folder, 'confidence')
+    confi_names = sorted(os.path.join(confi_path, name) for name in os.listdir(confi_path))
+    confis = []
+    for i in range(len(confi_names)):
+        confi = torch.from_numpy(np.load(confi_names[i]))
+        confis.append(confi)
+    confis = torch.stack(confis, dim=0)
+    return depths,confis
+
 def get_image_tensors(folder, channels:int=3):
     names = sorted(os.path.join(folder, name) for name in os.listdir(folder) if is_image_file(name))
     images = []

@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from pytorch3d.renderer import PerspectiveCameras
 from .utils import random_sample_points, get_image_tensors
 
+
 def get_camera_intrinsic(path):
     with open(path, 'r') as file:
         lines = file.readlines()

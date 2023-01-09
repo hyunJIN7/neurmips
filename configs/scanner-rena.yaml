@@ -10,7 +10,7 @@ seed: 0
 cuda: '0'
 data:
   path: 'data/scanner3D/renaissance_03'
-  image_size: [1440, 1920]
+  image_size: [192, 256]
   sample_rate: 0.2
   batch_points: 1000
   white_bg: False
