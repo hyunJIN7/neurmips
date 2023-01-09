@@ -9,6 +9,8 @@ from .utils import random_sample_points, get_image_tensors
 
 IMAGE_WIDTH = 1920
 IMAGE_HEIGHT = 1440
+DEPTH_WIDTH = 256
+DEPTH_HEIGHT = 192
 def get_camera_intrinsic(path):
     # with open(pose_fname, "r") as f:
     #     cam_pose_lines = f.readlines()
@@ -47,13 +49,15 @@ class ScannerDataset(Dataset):
         with open(pose_fname, "r") as f:
             cam_pose_lines = f.readlines()
         R,T = [],[]
+        t1 = np.array([[1,0,0],[0,1,0],[0,0,-1]])
         for line in cam_pose_lines:
             line_data_list = line.split(' ')
             if len(line_data_list) == 0:
                 continue
             line_data_list = np.array(line_data_list,dtype=float)
             pose_raw = np.reshape(line_data_list, (4, 4))
-            R.append(pose_raw[:3,:3])
+            r_raw =  pose_raw[:3,:3] @ t1
+            R.append(r_raw)
             T.append(pose_raw[:3,3])
 
         # R = torch.from_numpy(np.array(R)).float()

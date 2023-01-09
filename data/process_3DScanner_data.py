@@ -22,8 +22,10 @@ import shutil
 
 
 
-# DEPTH_WIDTH = 256
-# DEPTH_HEIGHT = 192
+IMAGE_WIDTH = 1920
+IMAGE_HEIGHT = 1440
+DEPTH_WIDTH = 256
+DEPTH_HEIGHT = 192
 MAX_DEPTH = 20.0
 np.random.seed(0)
 """
@@ -66,10 +68,6 @@ def config_parser():
 
     return parser
 
-# def load_depth(path, confidence=None):
-#     depth_mm = np.array(Image.open(path))
-#     depth_m = depth_mm.astype(np.float32) / 1000.0
-#     return depth_m
 
 def load_depth(path, confidence=None):
     extension = os.path.splitext(path)[1]
@@ -92,8 +90,10 @@ def make_dir(path):
 def process_3DScanner_data(args,mode,selected_index):
     mode_path = "{}/{}".format(args.basedir, mode)
     images_path = os.path.join(mode_path, "images")
+    depth_path = os.path.join(mode_path, "depth")
     make_dir(mode_path)
     make_dir(images_path)
+    make_dir(depth_path)
 
     # point cloud
     shutil.copy2(os.path.join(args.basedir, "XYZ_color.txt"),os.path.join(args.basedir, "point_color.txt"))
@@ -104,12 +104,23 @@ def process_3DScanner_data(args,mode,selected_index):
         # img
         img_fname = "{}/frame_{}.jpg".format(args.basedir, str(i).zfill(5) )
         img = PIL.Image.fromarray(imageio.imread(img_fname))
+        # img = Image.fromarray(img)
+        img = img.resize((DEPTH_WIDTH, DEPTH_HEIGHT))
         img = np.array(img)
         save_img_fame = os.path.join(images_path, "frame_{}".format(str(i)).zfill(5) + '.jpg')
         skvideo.io.vwrite(save_img_fame, img)
-        # image = PIL.Image.fromarray(imageio.imread(image_fname))
-        # skvideo.io.vwrite(os.path.join(rgb_path, str(int(pose[1])).zfill(5) + '.png'), rgb)
-        # img.save(path)
+
+        #depth
+        depth_fname = "{}/depth_{}.png".format(args.basedir, str(i).zfill(5))
+        depth = load_depth(depth_fname)
+        depth_fname = "{}/dpeth_{}.npy".format(depth_path, str(i).zfill(5) )
+        np.save(depth_fname, depth)
+
+        #load confidence
+        confi_fname = "{}/conf_{}.png".format(args.basedir, str(i).zfill(5)) #os.path.join(args.basedir, 'confidence', f'{i:06}.png')
+        confidence = load_confidence(confi_fname)
+        confi_fname = "{}/conf_{}.png".format(depth_path, str(i).zfill(5))
+        np.save(confi_fname, confidence)
 
         #pose
         pose_fname = "{}/frame_{}.json".format(args.basedir, str(i).zfill(5))
@@ -127,18 +138,17 @@ def process_3DScanner_data(args,mode,selected_index):
     #intrinsic save
     pose_fame = "{}/frame_{}.json".format(args.basedir, str(0).zfill(5))
     f = json.load(open(pose_fame,'r'))
-    intr = np.array(f["intrinsics"])
+    intr = np.array(f["intrinsics"],dtype=float)
+    intr[0] = intr[0] * float(DEPTH_WIDTH) / IMAGE_WIDTH
+    intr[2] = intr[2] * float(DEPTH_WIDTH) / IMAGE_WIDTH
+    intr[4] = intr[4] * float(DEPTH_HEIGHT) / IMAGE_HEIGHT
+    intr[5] = intr[5] * float(DEPTH_HEIGHT) / IMAGE_HEIGHT
     intr[-1] = 1
     intr_fname = os.path.join(mode_path,'intrinsic.txt')
     f = open(intr_fname, 'w')
     for e in intr:
         f.write(str(e)+" ")
     f.close()
-
-
-
-
-
 
 def main(args):
     #rgb images
