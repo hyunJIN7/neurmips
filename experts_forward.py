@@ -66,6 +66,7 @@ def forward_pass(
         optimizer.zero_grad()
         loss =  mse_color * cfg.loss_weight.color
         loss += loss_point2plane * cfg.loss_weight.point2plane
+        loss.requires_grad_(True) #TODO : check
         loss.backward()
         optimizer.step()
     
