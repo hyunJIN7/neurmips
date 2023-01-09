@@ -17,7 +17,8 @@ import cv2
 import random
 import glob
 import PIL
-import imageio
+import imageio.v2 as imageio
+import shutil
 
 
 
@@ -26,7 +27,12 @@ import imageio
 MAX_DEPTH = 20.0
 np.random.seed(0)
 """
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_train=150 --num_val=30
+
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_train=150 --num_val=30 --point_fname=XYZ_color.txt
+
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/renaissance_03 --num_train=120 --num_val=25 --point_fname=XYZ_color.txt
+
+
 """
 
 def config_parser():
@@ -35,6 +41,10 @@ def config_parser():
 
     parser.add_argument("--basedir", type=str, default='./data/strayscanner/computer',
                         help='input data directory')
+    parser.add_argument("--point_fname", type=str, default='XYZ_color.txt',
+                        help='input data directory')
+
+
     parser.add_argument("--num_train", type=int, default=120,
                         help='number of train data')
     parser.add_argument("--num_val", type=int, default=100,
@@ -85,12 +95,15 @@ def process_3DScanner_data(args,mode,selected_index):
     make_dir(mode_path)
     make_dir(images_path)
 
+    # point cloud
+    shutil.copy2(os.path.join(args.basedir, "XYZ_color.txt"),os.path.join(args.basedir, "point_color.txt"))
+    shutil.copy2(os.path.join(args.basedir, "point_color.txt"),os.path.join(mode_path, "point_color.txt"))
 
     poses = []
     for i in selected_index:
         # img
         img_fname = "{}/frame_{}.jpg".format(args.basedir, str(i).zfill(5) )
-        img = PIL.Image.fromarray(imageio.imread( img_fname)) #Image.fromarray(os.path.join(args.basedir, "frame_{}".format(str(i)).zfill(5) + '.jpg'))
+        img = PIL.Image.fromarray(imageio.imread(img_fname))
         img = np.array(img)
         save_img_fame = os.path.join(images_path, "frame_{}".format(str(i)).zfill(5) + '.jpg')
         skvideo.io.vwrite(save_img_fame, img)
@@ -122,28 +135,33 @@ def process_3DScanner_data(args,mode,selected_index):
         f.write(str(e)+" ")
     f.close()
 
+
+
+
+
+
 def main(args):
     #rgb images
-    all_index = np.array([int(fname[-9:-4]) for fname in glob.glob(os.path.join(args.basedir, '*.jpg'))])
+    all_index = np.array([int(fname[-9:-4]) for fname in glob.glob(os.path.join(args.basedir, 'frame*.jpg'))])
     all_index.sort()
     # 이미지 파일이 있는 pose 파일 골라내기
     # frame_paths = list(sorted(glob(os.path.join(args.basedir, "*.json"))))
     # frame_paths = list(filter(lambda x: "frame_" in x, frame_paths))
 
 
+
     n = len(all_index)
+    print("N : ",n)
     train_index = np.linspace(0, n, args.num_train, endpoint=False, dtype=int)
     # # if random sampling
     val_index = np.delete(np.arange(n),train_index)
-
     val_index = np.random.choice(val_index,args.num_val,replace=False)
 
-
     #save
-    modes = ['train', 'val']
+    modes = ['train', 'valid']
     for mode in modes:
         selected_index = (all_index[train_index] if mode == 'train' else all_index[val_index])
-        process_3DScanner_data(args, mode, selected_index)
+        process_3DScanner_data(args, mode, selected_index )
 
 
 

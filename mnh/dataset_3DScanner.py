@@ -5,15 +5,23 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from pytorch3d.renderer import PerspectiveCameras
-from .utils import random_sample_points, get_scanner_image_tensors
+from .utils import random_sample_points, get_image_tensors
 
+IMAGE_WIDTH = 1920
+IMAGE_HEIGHT = 1440
 def get_camera_intrinsic(path):
+    # with open(pose_fname, "r") as f:
+    #     cam_pose_lines = f.readlines()
+    # R, T = [], []
+    # for line in cam_pose_lines:
+    #     line_data_list = line.split(' ')
+
     with open(path, 'r') as file:
         lines = file.readlines()
-        lines = lines[3].split(' ')
-        W, H = int(lines[2]), int(lines[3])
-        fx, fy = float(lines[4]), float(lines[5])
-        px, py = float(lines[6]), float(lines[7])
+        lines = lines[0].split(' ')  # fx 0 cx 0 fy cy 0 0 1
+        W, H = IMAGE_WIDTH ,IMAGE_HEIGHT #int(lines[2]), int(lines[3])
+        fx, fy = float(lines[0]), float(lines[4])
+        px, py = float(lines[2]), float(lines[5])
     return [W, H, fx, fy, px, py]
 
 def screen_to_ndc(intrinsic):
@@ -27,26 +35,47 @@ def screen_to_ndc(intrinsic):
     return [W, H, fx_new, fy_new, px_new, py_new]
 class ScannerDataset(Dataset):
     def __init__(
-        self,
-        folder:str,
-        read_points:bool=False,
-        sample_rate:float=0.1,
-        batch_points:int=10000
+            self,
+            folder: str,
+            read_points: bool = False,
+            sample_rate: float = 0.1,
+            batch_points: int = 10000
     ):
-        R = np.load(os.path.join(folder, 'R.npy'))
-        T = np.load(os.path.join(folder, 'T.npy'))
-        R, T = torch.tensor(R), torch.tensor(T)
-        self.R = R 
-        self.T = T
 
-        intrinsic = get_camera_intrinsic(os.path.join(folder, 'cameras.txt'))
+
+        pose_fname = os.path.join(folder, 'poses.txt')
+        with open(pose_fname, "r") as f:
+            cam_pose_lines = f.readlines()
+        R,T = [],[]
+        for line in cam_pose_lines:
+            line_data_list = line.split(' ')
+            if len(line_data_list) == 0:
+                continue
+            line_data_list = np.array(line_data_list,dtype=float)
+            pose_raw = np.reshape(line_data_list, (4, 4))
+            R.append(pose_raw[:3,:3])
+            T.append(pose_raw[:3,3])
+
+        # R = torch.from_numpy(np.array(R)).float()
+        # T = torch.from_numpy(np.array(T)).float()
+        R, T = torch.tensor(np.array(R), dtype=torch.float32), torch.tensor(np.array(T), dtype=torch.float32)
+        self.R = R #(n,3,3)
+        self.T = T  #(n,3)
+
+        intrinsic = get_camera_intrinsic(os.path.join(folder, 'intrinsic.txt'))
         self.intrinsic = intrinsic
 
+        # convert to NDC coordinates
+        intrinsic = screen_to_ndc(intrinsic)
+        W, H, fx, fy, px, py = intrinsic
+
+        self.focal_length = ((fx, fy),)
+        self.principal_point = ((px, py),)
         cameras = []
         for i in range(R.size(0)):
             cam = PerspectiveCameras(
-                focal_length=((fx,fy),),
-                principal_point=((px,py),),
+                focal_length=((fx, fy),),
+                principal_point=((px, py),),
                 R=R[i][None],
                 T=T[i][None],
                 # image_size=((H,W),),
@@ -55,36 +84,29 @@ class ScannerDataset(Dataset):
             cameras.append(cam)
         self.cameras = cameras
 
-        # convert to NDC coordinates
-        intrinsic = screen_to_ndc(intrinsic)
-        W, H, fx, fy, px, py = intrinsic
-
-        self.focal_length = ((fx,fy),)
-        self.principal_point = ((px,py),)
-
-
-        images = get_scanner_image_tensors(os.path.join(folder, 'images'))
+        images = get_image_tensors(os.path.join(folder, 'images'))
         self.images = images
 
         self.sparse_points = None
         self.dense_points = None
         self.have_points = read_points
-        self.batch_points = batch_points 
+        self.batch_points = batch_points
         if read_points:
-            dense_path = os.path.join(folder, 'points3D.npy')
-            dense_points = torch.FloatTensor(np.load(dense_path))
+            dense_path = os.path.join(folder, 'point_color.txt')
+            points = []
+            point_fname = os.path.join(folder, 'point_color.txt') #X,Y,Z,R,G,B
+            with open(point_fname, "r") as f:
+                point_lines = f.readlines()
+            for line in point_lines:
+                line_data_list = line.split(',')
+                if len(line_data_list) == 0:
+                    continue
+                line_data_list = np.array(line_data_list, dtype=float)
+                points.append(line_data_list[:3])
+
+            dense_points = torch.tensor(np.array(points), dtype=torch.float32)
             dense_points = random_sample_points(dense_points, sample_rate)
             self.dense_points = dense_points
-
-        select_index = []
-        # if split == 'train':
-        # else:
-        # TODO : train datat sampling
-        """
-        
-        """
-
-
 
     def get_camera_centers(self):
         R, T = self.R, self.T 
@@ -115,7 +137,7 @@ def main():
     parser.add_argument('-folder')
     args = parser.parse_args()
 
-    dataset = TanksAndTemplesDataset(args.folder, read_points=True, sample_rate=0.2)
+    dataset = ScannerDataset(args.folder, read_points=True, sample_rate=0.2)
     data = dataset[0]
     points = data['points']
     points_dense = dataset.dense_points

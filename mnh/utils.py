@@ -92,17 +92,6 @@ def is_image_file(file_name):
     else:
         return False
 
-def get_scanner_image_tensors(folder, channels:int=3):
-    names = sorted(os.path.join(folder, name) for name in os.listdir(folder) if is_image_file(name))
-    images = []
-    for i in range(len(names)):
-        img = Image.open(names[i])
-        img_array = np.array(img)[...,:channels]
-        img_tensor = torch.FloatTensor(img_array)
-        img_tensor /= 255.0
-        images.append(img_tensor)
-    images = torch.stack(images, dim=0)
-    return images
 
 def get_image_tensors(folder, channels:int=3):
     names = sorted(os.path.join(folder, name) for name in os.listdir(folder) if is_image_file(name))
