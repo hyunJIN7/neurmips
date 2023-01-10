@@ -48,9 +48,9 @@ class NeuralRadianceField(torch.nn.Module):
         # The harmonic embedding layer converts input 3D coordinates
         # to a representation that is more suitable for
         # processing with a deep neural network.
-        self.harmonic_embedding_xyz = HarmonicEmbedding(n_harmonic_functions_xyz)
+        self.harmonic_embedding_xyz = HarmonicEmbedding(n_harmonic_functions_xyz)  # PE
         self.harmonic_embedding_dir = HarmonicEmbedding(n_harmonic_functions_dir)
-        embedding_dim_xyz = n_harmonic_functions_xyz * 2 * 3 + 3
+        embedding_dim_xyz = n_harmonic_functions_xyz * 2 * 3 + 3   # L * 2 * 3 +3
         embedding_dim_dir = n_harmonic_functions_dir * 2 * 3 + 3
 
         self.mlp_xyz = MLPWithInputSkips(

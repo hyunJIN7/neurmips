@@ -35,6 +35,7 @@ python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_
 python data/process_3DScanner_data.py --basedir ./data/scanner3D/renaissance_03 --num_train=120 --num_val=25 --point_fname=XYZ_color.txt
 
 
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/room --num_train=180 --num_val=45 --point_fname=room_11_20_18.txt
 
 
 """
@@ -102,7 +103,7 @@ def process_3DScanner_data(args,mode,selected_index):
 
 
     # point cloud
-    shutil.copy2(os.path.join(args.basedir, "XYZ_color.txt"),os.path.join(args.basedir, "point_color.txt"))
+    shutil.copy2(os.path.join(args.basedir, args.point_fname),os.path.join(args.basedir, "point_color.txt"))
     shutil.copy2(os.path.join(args.basedir, "point_color.txt"),os.path.join(mode_path, "point_color.txt"))
 
     poses = []

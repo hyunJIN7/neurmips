@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from .utils_model import detect_invalid_values
 
-def get_ndc_grid(
+def get_ndc_grid(  #
     image_size: Tuple[int, int]
 ):  
     '''

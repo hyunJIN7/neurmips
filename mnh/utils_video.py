@@ -8,7 +8,33 @@ from pytorch3d.renderer import PerspectiveCameras, look_at_view_transform
 from mnh.utils_camera import get_cam2world, get_transform_matrix, transform_points_batch
 from mnh.utils_vedo import get_vedo_cameras
 
+def generate_video_cameras_scanner(
+    dataset,
+    ref_rotation,
+    ref_position,
+    scene_up,
+    radius:float,
+    frames:int,
+):
+    theta = np.linspace(0, np.pi*2, frames)
+    traj_ref = torch.zeros(frames, 3)
+    traj_ref[:, 0] = torch.FloatTensor(np.cos(theta)) * radius
+    traj_ref[:, 1] = torch.FloatTensor(np.sin(theta)) * radius
 
+    world2ref = get_transform_matrix(ref_rotation[None], ref_position[None])[0]
+    ref2world = torch.inverse(world2ref)
+    traj_world = transform_points_batch(traj_ref, ref2world)
+
+    points = dataset.dense_points
+    scene_center = torch.mean(points, dim=0)
+
+    R, T = look_at_view_transform(
+        eye=traj_world,
+        at=scene_center[None], #(1, 3)
+        up=torch.FloatTensor((scene_up, )), #(1, 3)
+        device=traj_world.device
+    )
+    return R, T
 def generate_video_cameras_replica(
     dataset,
     dist_x:float, # left/right
@@ -141,9 +167,9 @@ def camera_view_trajectory(distance:float, frame_unit:int, dim:int):
     return traj
 
 def main():
-    # from mnh.dataset_replica import ReplicaDataset, dataset_to_depthpoints
+    from mnh.dataset_replica import ReplicaDataset, dataset_to_depthpoints
     from mnh.dataset_tat import TanksAndTemplesDataset
-    # from mnh.dataset_3DScanner import ScannerDataset
+    from mnh.dataset_3DScanner import ScannerDataset
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-data')
@@ -157,8 +183,9 @@ def main():
     args = parser.parse_args()
 
     """
-    python utils_video.py -data=data/TanksAndTemple/Family/train -mode=output-tanks -folder=data/TanksAndTemple/Family/train/test
-    
+python utils_video.py -data=data/TanksAndTemple/Family/train -mode=output-tanks -folder=data/TanksAndTemple/Family/train/test -frames=30
+python utils_video.py -data=data/scanner3D/renaissance_03/train -mode=output-scanner -folder=data/scanner3D/renaissance_03/train/vedo_test -radius=30 -frames=30
+
     """
 
     if args.mode == 'output-scanner':
@@ -173,7 +200,7 @@ def main():
         )
         scene_up = (0, 1, 0)
 
-        R, T = generate_video_cameras_tanks(
+        R, T = generate_video_cameras_scanner(
             dataset,
             ref_rotation,
             ref_position,

@@ -35,7 +35,7 @@ def main(cfg: DictConfig):
     train_loader = DataLoader(train_dataset, collate_fn=lambda x: x, shuffle=False)
     valid_loader = DataLoader(valid_dataset, collate_fn=lambda x: x, shuffle=False)
 
-    model = get_model_from_config(cfg)
+    model = get_model_from_config(cfg)  #confi 값으로 모델 기본 세팅
     model.to(device)
 
     # load checkpoints

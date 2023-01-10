@@ -27,7 +27,7 @@ import shutil
 MAX_DEPTH = 20.0
 np.random.seed(0)
 """
-python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x --num_train=16 --num_val=0
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z2 --num_train=27 --num_val=0
 
 
 """
