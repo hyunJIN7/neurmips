@@ -25,7 +25,7 @@ model:
   anti_aliasing: True
   premultiply_alpha: False
   init:
-    lrf_neighbors: 100
+    lrf_neighbors: 100  #center에서 가까운 lrf개 point 샘플링해  각 plane 별 local reference frame ,x,y,z 주성분 찾을때 사용되는 point 수
     wh: 0.3
     box_factor: 2
     random_rate: 0.9

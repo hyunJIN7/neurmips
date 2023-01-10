@@ -37,7 +37,7 @@ def forward_pass(
     training:bool=False,
     **kwargs,
 ):
-    camera   = data['camera'].to(device)
+    camera = data['camera'].to(device)
     color_gt = data['color'].to(device)
     points_dense = data['points'].to(device)
 
@@ -45,7 +45,7 @@ def forward_pass(
     if training:
         model.train()
         out = model(camera)
-        sample_idx = out['sample_idx']
+        sample_idx = out['sample_idx'] #sample_idx, H*W에서 n_train_sample 만 샘플링하
         color_gt = color_gt.view(-1, 3)[sample_idx]
     else:
         with torch.no_grad():

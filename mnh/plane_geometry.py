@@ -34,8 +34,8 @@ class PlaneGeometry(nn.Module):
             -roation: local PCA basis
             -size: specified in args
         '''
-        sample_idx, center = farthest_point_sample(points, self.n_plane)
-        lrf = get_points_lrf(points, neighbor_num=lrf_neighbors, indices=sample_idx) #(point_n, 3, 3)
+        sample_idx, center = farthest_point_sample(points, self.n_plane) ##각 포인트와 sample set의 포인트들과 거리 중 가장 먼 포인트 id
+        lrf = get_points_lrf(points, neighbor_num=lrf_neighbors, indices=sample_idx) #(point_n, 3, 3) ,각 플레인 별 x,y,z 주성분 local reference frame
         self.center.data = center
         self.xy.data = lrf[:,:,:2]
         # self.yz.data = lrf[:,:,1:]
@@ -230,21 +230,21 @@ def farthest_point_sample(
     '''
     idx = 0
     sample_set= [idx]
-    dist2set = torch.tensor([]).to(points.device)
+    dist2set = torch.tensor([]).to(points.device)  # rkr
     for i in range(sample_n - 1):
         dist = points - points[idx]
         dist = torch.sum(dist**2, dim=1)[:, None]
         dist2set = torch.cat([dist2set, dist], dim=1)
-        min_dist, _ = torch.min(dist2set, dim=1) #(point_n,)
-        _, max_id = torch.max(min_dist, dim=0)
+        min_dist, _ = torch.min(dist2set, dim=1) #(point_n,) sample set의 포인트들과의 가장 가까운 거리
+        _, max_id = torch.max(min_dist, dim=0)  # 각 포인트와 sample set의 포인트들과 거리 중 가장 먼 포인트 id
         idx = max_id.item()
         sample_set.append(idx) 
 
     points_sample = points[sample_set]
-    sample_set = torch.LongTensor(sample_set)
+    sample_set = torch.LongTensor(sample_set) #각 포인트와 sample set의 포인트들과 거리 중 가장 먼 포인트 id
     return sample_set, points_sample
 
-def get_points_lrf(
+def get_points_lrf(  #각 플레인 별 x,y,z 주성분
     points,
     neighbor_num:int,
     indices,
@@ -254,26 +254,27 @@ def get_points_lrf(
     Input:
         points: (point_n, 3)
         indices: (sample_n,) index of partial points -> reduce computation
+                plane center  point id
     Output:
         Local reference frame at each point computed by PCA
         lrf: (point_n, 3, 3) basis are aranged in columns
     '''
-    samples = points[indices] #(sample_n, 3)
-    dist = samples.unsqueeze(1) - points.unsqueeze(0) #(s, p, 3)
+    samples = points[indices] #(sample_n, 3)  center point
+    dist = samples.unsqueeze(1) - points.unsqueeze(0) #(sample, point, 3)  각center와 전체 point 사이 거리
     dist = torch.sum(dist**2, dim=-1) #(s, p)
-    dist_n, neighbor_idx = torch.topk(dist, k=neighbor_num, dim=-1, largest=False)
+    dist_n, neighbor_idx = torch.topk(dist, k=neighbor_num, dim=-1, largest=False) #즉 각 센터 별로 가까운 포인트 K(neighbor_num) 개 추출
     neighbors = points[neighbor_idx].cpu() #(s, n, 3)
     lrf_list = []
-    sample_n = samples.size(0)
+    sample_n = samples.size(0)  #plane num
     chunk_n = math.ceil(sample_n/chunk_size)
     for i in range(chunk_n):
         start = i * chunk_size 
         end = min((i+1)*chunk_size, sample_n)
         U, S, V_t = torch.pca_lowrank(neighbors[start:end])
-        lrf_list.append(V_t)
+        lrf_list.append(V_t) # V_t : (chunk_n,3), columns represente principal directions
         # U:(s, n, n), S:(s, min(n,3)), V_t:(s, 3, 3)
     lrf = torch.cat(lrf_list, dim=0).to(points.device)
-    return lrf
+    return lrf  # (sample num ,3,3)
 
 def orthonormal_basis_from_xy(xy):
     '''

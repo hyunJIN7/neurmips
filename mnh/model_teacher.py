@@ -271,16 +271,16 @@ class ModelTeacher(nn.Module):
         self.ndc_grid = self.ndc_grid.to(device)
         ndc_grid = self.ndc_grid.clone()
         if self.training and self.anti_aliasing:
-            ndc_grid = oscillate_ndc_grid(ndc_grid)
+            ndc_grid = oscillate_ndc_grid(ndc_grid) # 노이즈 약간 준 grid 리턴 for anti-aliasing
         ndc_points = ndc_grid.view(-1, 3) #(img_h*img_w, 3)
         return ndc_points
 
     def forward_train(self, camera, ndc_points_full):
-        img_pixel_num = ndc_points_full.size(0)
+        img_pixel_num = ndc_points_full.size(0) # H*W
         # sample_idx = torch.randperm(img_pixel_num)[:self.n_train_sample] #(n_train_sample, )
         sample_idx = torch.rand(self.n_train_sample)
         sample_idx = (sample_idx * img_pixel_num).long()
-        ndc_points = ndc_points_full[sample_idx] #(n_train_sample, 3)
+        ndc_points = ndc_points_full[sample_idx] #(n_train_sample, 3)  H*W에서 n_train_sample 만 샘플링하는
         output = self.process(camera, ndc_points)
         output['sample_idx'] = sample_idx
         return output 
@@ -318,7 +318,7 @@ class ModelTeacher(nn.Module):
         return output 
 
     def forward(self, camera):
-        ndc_points_full = self.ndc_points_full(camera)
+        ndc_points_full = self.ndc_points_full(camera) #(img_h*img_w, 3) 노이즈 약간 준 grid 리턴 for anti-aliasing
 
         if self.training: 
             output = self.forward_train(camera, ndc_points_full)

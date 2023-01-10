@@ -105,7 +105,7 @@ def main(cfg: DictConfig):
         stats_logger.new_epoch()
 
         for i, data in enumerate(train_loader):
-            data = data[0]
+            data = data[0] # each camera,color,points
             train_stats, _ = forward_pass(
                 data, 
                 model,
