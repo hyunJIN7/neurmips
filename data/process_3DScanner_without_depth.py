@@ -27,9 +27,15 @@ import shutil
 MAX_DEPTH = 20.0
 np.random.seed(0)
 """
-python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z2 --num_train=27 --num_val=0
+
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x4 --num_train=30 --num_val=0 --point_fname=x4_14_43_08.txt
+
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z4 --num_train=30 --num_val=0 --point_fname=z4_14_42_08.txt
 
 
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x3 --num_train=30 --num_val=0 --point_fname=x_14_44_47.txt
+
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z3 --num_train=30 --num_val=0 --point_fname=z_14_45_02.txt
 """
 
 
@@ -98,9 +104,9 @@ def process_3DScanner_data(args,mode,selected_index):
     # shutil.copy2(os.path.join(args.basedir, "point_color.txt"),os.path.join(mode_path, "point_color.txt"))
 
     poses = []
-
+    j = 0
     for i in selected_index:
-
+        j= j+1
         # img
         img_fname = "{}/frame_{}.jpg".format(args.basedir, str(i).zfill(5) )
         img = PIL.Image.fromarray(imageio.imread(img_fname))
@@ -116,7 +122,10 @@ def process_3DScanner_data(args,mode,selected_index):
         f = json.load(open(pose_fname, 'r'))
         rt = np.array(f["cameraPoseARFrame"]) # rotation matrix line
         rt[-1] = 1
-        rt_line = [str(e) for e in rt]
+        rt_line = [str(j)]
+        # rt_line = [str(e) for e in rt]
+        for e in rt :
+            rt_line.append(str(e))
 
         poses.append(' '.join(rt_line) + '\n')
 

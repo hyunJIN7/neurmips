@@ -35,9 +35,15 @@ python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_
 python data/process_3DScanner_data.py --basedir ./data/scanner3D/renaissance_03 --num_train=120 --num_val=25 --point_fname=XYZ_color.txt
 
 
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/obj --num_train=70 --num_val=13 --point_fname=obj2_08_30_21.txt
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/x4 --num_train=03 --num_val=0 --point_fname=x4_14_43_08.txt
 
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/stand --num_train=65 --num_val=10 --point_fname=stand_08_32_04.txt
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/z4 --num_train=30 --num_val=0 --point_fname=z4_14_42_08.txt
+
+
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/x3 --num_train=30 --num_val=0 --point_fname=x_14_44_47.txt
+
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/z3 --num_train=30 --num_val=0 --point_fname=z_14_45_02.txt
+
 
 """
 
