@@ -1,34 +1,34 @@
 name: 'scanner-room'
 notes: '
-  [Data] room_0
-  [Model] 100 planes
-  [init] dense points (w/ box)
+  [Data] room
+  [Model] 50 planes
+  [init] dense points (w/o box)
   [Loss] mse_color + mse_point2plane + area_reg.
   [Reg.] oscillate NDC
 '
 seed: 0
 cuda: '0'
 data:
-  path: 'data/scanner3D/room/'
+  path: 'data/scanner3D/room'
   image_size: [192, 256]
-  sample_rate: 1.0
-  batch_points: 10000
+  sample_rate: 0.2
+  batch_points: 1000
   white_bg: False
 checkpoint:
-  teacher: 'scanner-room-teacher.pth'
-  experts: 'scanner-room-experts.pth'
+  teacher: 'scanner3D-room-teacher.pth'
+  experts: 'scanner3D-room-experts.pth'
 
 model:
-  n_plane: 100
-  n_train_sample: 4096
-  n_infer_sample: 4096
+  n_plane: 50
+  n_train_sample: 10000
+  n_infer_sample: 10000
   anti_aliasing: True
   premultiply_alpha: False
   init:
-    lrf_neighbors: 100
-    wh: 2
-    box_factor: 4
-    random_rate: 0.0
+    lrf_neighbors: 100  #center에서 가까운 lrf개 point 샘플링해  각 plane 별 local reference frame ,x,y,z 주성분 찾을때 사용되는 point 수
+    wh: 0.3
+    box_factor: 2
+    random_rate: 0.9
   mlp_teacher:
     n_harmonic_functions_pos: 10
     n_harmonic_functions_dir: 4
@@ -50,7 +50,7 @@ model:
 loss_weight:
   color: 1.0
   point2plane: 1.0
-  area: 0.00000001
+  area: 0.00005
 optimizer:
   lr: 0.0005
   lr_scheduler_step_size: 5000
@@ -60,11 +60,11 @@ train:
   resume: True
   freeze_geometry: True
   epoch:
-    teacher: 2000
+    teacher: 2800
     distill: 1000
-    finetune: 1000
+    finetune: 3500
     validation: 500
-    checkpoint: 20
+    checkpoint: 10
 test:
   mode: 'test_model'
   folder: ''

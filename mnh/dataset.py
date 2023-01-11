@@ -22,16 +22,26 @@ def load_datasets(
         valid_dataset = ReplicaDataset(
             folder=valid_path
         )
+    # elif 'scanner3D' in cfg.data.path:  #for tat format
+    #     train_dataset = ScannerDataset(
+    #         folder=train_path,
+    #         read_points=True,
+    #         sample_rate=cfg.data.sample_rate,
+    #         batch_points=cfg.data.batch_points,
+    #     )
+    #     valid_dataset = ScannerDataset(
+    #         folder=valid_path,
+    #     )
     elif 'scanner3D' in cfg.data.path:
         train_dataset = ScannerDataset(
             folder=train_path,
             read_points=True,
-            sample_rate=cfg.data.sample_rate,
-            batch_points=cfg.data.batch_points,
+            batch_points=cfg.data.batch_points
         )
         valid_dataset = ScannerDataset(
-            folder=valid_path,
+            folder=valid_path
         )
+
     elif 'vedo' in cfg.data.path:
         train_dataset = VedoDataset(
             folder=train_path,

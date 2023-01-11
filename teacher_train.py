@@ -57,7 +57,7 @@ def main(cfg: DictConfig):
         print('[Init] initialize plane geometry ...')
         points = train_dataset.dense_points.to(device)
         print('#points= {}'.format(points.size(0)))
-        if 'replica' in cfg.data.path:
+        if 'replica' in cfg.data.path or 'scanner3D' in cfg.data.path:
             model.plane_geo.initialize_with_box(
                 points, 
                 lrf_neighbors=cfg.model.init.lrf_neighbors,

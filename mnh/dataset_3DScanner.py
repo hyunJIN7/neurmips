@@ -22,22 +22,10 @@ def get_camera_intrinsic(path):
         px, py = float(lines[2]), float(lines[5])
     return [W, H, fx, fy, px, py]
 
-def ndc_to_screen(intrinsic):
-    W, H, fx, fy, px, py = intrinsic
-    # convert from NDC space to screen space
-    half_w, half_h = W / 2, H / 2
-    fx_new = fx * half_w
-    fy_new = fy * half_h
-    px_new = -(px * half_w) + half_w
-    py_new = -(py * half_h) + half_h
-    return [W, H, fx_new, fy_new, px_new, py_new]
-
-
 class ScannerDataset(Dataset):
     def __init__(
             self,
             folder: str,
-            focal_length: float = 2.7778,
             read_points: bool = False,
             batch_points: int = 10000
             # read_points: bool = False,
@@ -63,9 +51,6 @@ class ScannerDataset(Dataset):
             r_raw = pose_raw[:3, :3] @ t1
             R.append(r_raw)
             T.append(pose_raw[:3, 3])
-
-        # R = torch.from_numpy(np.array(R)).float()
-        # T = torch.from_numpy(np.array(T)).float()
         R, T = torch.tensor(np.array(R), dtype=torch.float32), torch.tensor(np.array(T), dtype=torch.float32)
         self.R = R  # (n,3,3)
         self.T = T  # (n,3)
@@ -98,7 +83,7 @@ class ScannerDataset(Dataset):
         self.images = images
 
         depth, confi = get_depth_and_confidence(folder) # (N, h, w)
-        self.depth, self.confidence = depth, confi
+        self.depths, self.confidences = depth, confi
 
         self.dense_points = None
         self.have_points = read_points
@@ -141,7 +126,7 @@ class ScannerDataset(Dataset):
             'color': self.images[index],
             'depth': self.depths[index],
             'points': points,
-            'confidence': self.confidence[index],
+            'confidence': self.confidences[index],
         }
         return data
 
