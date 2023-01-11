@@ -105,7 +105,7 @@ def main(cfg: DictConfig):
         stats_logger.new_epoch()
 
         for i, data in enumerate(train_loader):
-            data = data[0] # each camera,color,points
+            data = data[0] # each camera,color,points 인풋 n개 데이터(이미지수 기준)  중 하나
             train_stats, _ = forward_pass(
                 data, 
                 model,

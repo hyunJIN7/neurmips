@@ -7,10 +7,6 @@ import torch
 # import torch.nn.functional as F
 import os
 import numpy as np
-# import imageio
-# import json
-# from transforms3d.quaternions import quat2mat
-# from skimage import img_as_ubyte
 from PIL import Image
 import skvideo.io
 import cv2
@@ -28,14 +24,16 @@ MAX_DEPTH = 20.0
 np.random.seed(0)
 """
 
-python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x4 --num_train=30 --num_val=0 --point_fname=x4_14_43_08.txt
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x4 --num_train=30 --num_val=0 
 
-python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z4 --num_train=30 --num_val=0 --point_fname=z4_14_42_08.txt
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z4 --num_train=30 --num_val=0
 
 
-python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x3 --num_train=30 --num_val=0 --point_fname=x_14_44_47.txt
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/x3 --num_train=30 --num_val=0 
+python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/test --num_train=39 --num_val=0 --point_fname=colmap_test_20_41_49.txt
 
-python data/process_3DScanner_without_depth.py --basedir ./data/scanner3D/z3 --num_train=30 --num_val=0 --point_fname=z_14_45_02.txt
+
+
 """
 
 
@@ -47,7 +45,6 @@ def config_parser():
                         help='input data directory')
     parser.add_argument("--point_fname", type=str, default='XYZ_color.txt',
                         help='input data directory')
-
 
     parser.add_argument("--num_train", type=int, default=120,
                         help='number of train data')
@@ -153,15 +150,10 @@ def process_3DScanner_data(args,mode,selected_index):
 def main(args):
     #rgb images
     all_index = np.array([int(fname[-9:-4]) for fname in glob.glob(os.path.join(args.basedir, 'frame*.jpg'))])
-
-
-
     all_index.sort()
     # 이미지 파일이 있는 pose 파일 골라내기
     # frame_paths = list(sorted(glob(os.path.join(args.basedir, "*.json"))))
     # frame_paths = list(filter(lambda x: "frame_" in x, frame_paths))
-
-
 
     n = len(all_index)
     print("N : ",n)
@@ -175,9 +167,6 @@ def main(args):
     for mode in modes:
         selected_index = (all_index[train_index] if mode == 'train' else all_index[val_index])
         process_3DScanner_data(args, mode, selected_index )
-
-
-
 
 if __name__ == '__main__':
     parser = config_parser()

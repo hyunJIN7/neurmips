@@ -35,6 +35,7 @@ def load_datasets(
     elif 'scanner3D' in cfg.data.path:
         train_dataset = ScannerDataset(
             folder=train_path,
+            sample_rate=cfg.data.sample_rate,
             read_points=True,
             batch_points=cfg.data.batch_points
         )
@@ -42,16 +43,6 @@ def load_datasets(
             folder=valid_path
         )
 
-    elif 'vedo' in cfg.data.path:
-        train_dataset = VedoDataset(
-            folder=train_path,
-            read_points=True,
-            sample_rate=cfg.data.sample_rate,
-            batch_points=cfg.data.batch_points,
-        )
-        valid_dataset = ScannerDataset(
-            folder=valid_path,
-        )
     elif 'Tanks' in cfg.data.path or 'BlendedMVS' in cfg.data.path:
         train_dataset = TanksAndTemplesDataset(
             folder=train_path, 

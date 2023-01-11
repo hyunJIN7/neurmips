@@ -46,7 +46,7 @@ def oscillate_ndc_grid(ndc_grid):
     noise_h = (torch.rand(h, w, device=device) - 0.5) * 2 * half_pix_h
     ndc_grid[:,:,0] += noise_w
     ndc_grid[:,:,1] += noise_h
-    return ndc_grid  #노이즈 약간 준 grid 리턴
+    return ndc_grid  #노이즈 약간 준 (-1,1)H*W grid 리턴
 
 def filter_tiny_values(tensor, eps:float=1e-5):
     tensor_sign = torch.sign(tensor)

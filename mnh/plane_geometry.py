@@ -34,7 +34,7 @@ class PlaneGeometry(nn.Module):
             -roation: local PCA basis
             -size: specified in args
         '''
-        sample_idx, center = farthest_point_sample(points, self.n_plane) ##각 포인트와 sample set의 포인트들과 거리 중 가장 먼 포인트 id
+        sample_idx, center = farthest_point_sample(points, self.n_plane) #각 포인트와 sample set의 포인트들과 거리 중 가장 먼 포인트 id
         lrf = get_points_lrf(points, neighbor_num=lrf_neighbors, indices=sample_idx) #(point_n, 3, 3) ,각 플레인 별 x,y,z 주성분 local reference frame
         self.center.data = center
         self.xy.data = lrf[:,:,:2]
@@ -50,14 +50,14 @@ class PlaneGeometry(nn.Module):
         random_rate:float=0.0
     ):  
         device = points.device
-        mean = torch.mean(points, dim=0)
-        bound_max = torch.max(points - mean, dim=0)[0] * box_factor + mean 
+        mean = torch.mean(points, dim=0) #(3,)
+        bound_max = torch.max(points - mean, dim=0)[0] * box_factor + mean   #point cloud 경계 보다 더 큰 box 만들기 위해
         bound_min = torch.min(points - mean, dim=0)[0] * box_factor + mean
         box_len = torch.max(bound_max - bound_min)
         x_max, y_max, z_max = bound_max 
         x_min, y_min, z_min = bound_min
         x_mid, y_mid, z_mid = (x_max+x_min)/2, (y_max+y_min)/2, (z_max+z_min)/2 
-        face_centers = torch.FloatTensor([
+        face_centers = torch.FloatTensor([  # 육면체 각 plane의 center 위치 (6,3)
             [x_min, y_mid, z_mid],
             [x_max, y_mid, z_mid],
             [x_mid, y_min, z_mid],
@@ -65,17 +65,17 @@ class PlaneGeometry(nn.Module):
             [x_mid, y_mid, z_min],
             [x_mid, y_mid, z_max]
         ]).to(device)
-        eye = torch.eye(3).to(device)
-        face_xy = torch.stack([
+        eye = torch.eye(3).to(device)  # 3X3 Identity
+        face_xy = torch.stack([ # (6,3,2)
             eye[:,[1, 2]],
-            eye[:,[1, 2]],
+            eye[:,[1, 2]],   #x plane 관련
             eye[:,[0, 2]],
-            eye[:,[0, 2]],
+            eye[:,[0, 2]],   #y plane 관련
             eye[:,[0, 1]],
-            eye[:,[0, 1]],
+            eye[:,[0, 1]],   #z plane 관련
         ], dim=0)
 
-        face_n = 6 
+        face_n = 6  #box 육면체
         sample_n = self.n_plane - face_n
         if random_rate > 0:
             rand_n = int(sample_n * random_rate)
@@ -86,8 +86,8 @@ class PlaneGeometry(nn.Module):
             sample_idx = torch.cat([rand_idx, fps_idx])
             center = torch.cat([rand_center, fps_center], dim=0)
         else:
-            sample_idx, center = farthest_point_sample(points, sample_n)
-        lrf = get_points_lrf(points, neighbor_num=lrf_neighbors, indices=sample_idx) #(point_n, 3, 3)
+            sample_idx, center = farthest_point_sample(points, sample_n) #plane center point ,각 포인트와 sample set의 포인트들과 거리 중 가장 먼 포인트 id
+        lrf = get_points_lrf(points, neighbor_num=lrf_neighbors, indices=sample_idx) #(point_n, 3, 3),각 플레인 별 x,y,z 주성분 local reference frame
         
         self.center.data = torch.cat([face_centers, center], dim=0)
         self.xy.data = torch.cat([face_xy, lrf[:,:,:2]], dim=0)
@@ -102,7 +102,7 @@ class PlaneGeometry(nn.Module):
     def basis(self):
         basis = orthonormal_basis_from_xy(self.xy)
         # basis = orthonormal_basis_from_yz(self.yz)
-        return basis
+        return basis #  #lrf에서 얻은 point cloud plane의 각 주성분 x,y를 기반으로 이제 orthogonal한 주성분
 
     def size(self):
         return self.wh
@@ -277,11 +277,11 @@ def get_points_lrf(  #각 플레인 별 x,y,z 주성분
     return lrf  # (sample num ,3,3)
 
 def orthonormal_basis_from_xy(xy):
-    '''
-    compute orthonormal basis from xy vector: (n, 3, 2)
+    ''' xy : #get_points_lrf에서 얻은 point cloud plane의 xyz에서 xy만 !!!!!
+    compute orthonormal basis from xy vector: (n, 3, 2)   #lrf에서 얻은 point cloud plane의 각 주성분 x,y를 기반으로 이제 orthogonal한 주성분을 구하기 위한 과정
     '''
     x, y = xy[:,:,0], xy[:,:,1]
-    z = torch.cross(x, y, dim=-1)
+    z = torch.cross(x, y, dim=-1)  # 외적
     y = torch.cross(z, x, dim=-1)
     x = F.normalize(x, dim=-1)
     y = F.normalize(y, dim=-1)

@@ -1,7 +1,7 @@
-name: 'scanner-room'
+name: 'scanner-hallway6'
 notes: '
-  [Data] room
-  [Model] 150 planes
+  [Data] hallway6
+  [Model] 1000 planes
   [init] dense points (w/ box)
   [Loss] mse_color + mse_point2plane + area_reg.
   [Reg.] oscillate NDC
@@ -9,17 +9,17 @@ notes: '
 seed: 0
 cuda: '0'
 data:
-  path: 'data/scanner3D/room/'
+  path: 'data/scanner3D/hallway6/'
   image_size: [192, 256]
-  sample_rate: 1.0
+  sample_rate: 0.1
   batch_points: 10000
   white_bg: False
 checkpoint:
-  teacher: 'replica-room-teacher.pth'
-  experts: 'replica-room-experts.pth'
+  teacher: 'replica-hallway6-teacher.pth'
+  experts: 'replica-hallway6-experts.pth'
 
 model:
-  n_plane: 150
+  n_plane: 1000
   n_train_sample: 4096
   n_infer_sample: 4096
   anti_aliasing: True

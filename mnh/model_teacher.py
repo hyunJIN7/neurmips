@@ -92,9 +92,9 @@ class ModelTeacher(nn.Module):
             planes_depth:  (plane_n, point_n)
             hit:          (plane_n, point_n)
         '''
-        planes_basis = self.plane_geo.basis()  #TODO : HERE!!!!!!!!!!!
-        planes_center = self.plane_geo.position() #(plane_n, 3)
-        planes_depth, world_points = ray_plane_intersection(
+        planes_basis = self.plane_geo.basis() #(plane_n, 3, 3)  #lrf에서 얻은 point cloud plane의 각 주성분 x,y를 기반으로 이제 orthogonal한 plane의 x,y,z 주성분
+        planes_center = self.plane_geo.position() #(plane_n, 3)  plane center
+        planes_depth, world_points = ray_plane_intersection( #TODO : HERE
             planes_basis,
             planes_center,
             camera, 

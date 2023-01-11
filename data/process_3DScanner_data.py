@@ -30,19 +30,13 @@ MAX_DEPTH = 20.0
 np.random.seed(0)
 """
 
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_train=150 --num_val=30 --point_fname=XYZ_color.txt
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/hallway6 --num_train=170 --num_val=25 --point_fname=XYZ_color.txt
 
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/renaissance_03 --num_train=120 --num_val=25 --point_fname=XYZ_color.txt
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/obj3 --num_train=120 --num_val=35 --point_fname=obj3_18_56_22.txt
 
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/renaissance --num_train=120 --num_val=25 --point_fname=XYZ_color.txt
 
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/x4 --num_train=03 --num_val=0 --point_fname=x4_14_43_08.txt
-
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/z4 --num_train=30 --num_val=0 --point_fname=z4_14_42_08.txt
-
-
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/x3 --num_train=30 --num_val=0 --point_fname=x_14_44_47.txt
-
-python data/process_3DScanner_data.py --basedir ./data/scanner3D/z3 --num_train=30 --num_val=0 --point_fname=z_14_45_02.txt
+python data/process_3DScanner_data.py --basedir ./data/scanner3D/test --num_train=39 --num_val=0 --point_fname=colmap_test_20_41_49.txt
 
 
 """

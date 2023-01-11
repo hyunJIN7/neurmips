@@ -26,6 +26,7 @@ class ScannerDataset(Dataset):
     def __init__(
             self,
             folder: str,
+            sample_rate:float=0.1,
             read_points: bool = False,
             batch_points: int = 10000
             # read_points: bool = False,
@@ -101,7 +102,7 @@ class ScannerDataset(Dataset):
                 points.append(line_data_list[:3])
 
             dense_points = torch.tensor(np.array(points), dtype=torch.float32)
-            # dense_points = random_sample_points(dense_points, sample_rate)
+            dense_points = random_sample_points(dense_points, sample_rate)
             self.dense_points = dense_points
 
     def get_camera_centers(self):
