@@ -4,6 +4,7 @@ import torch
 from omegaconf import DictConfig
 import hydra
 from mnh.dataset_replica import dataset_to_depthpoints
+# from mnh.dataset_3DScanner import dataset_to_depthpoints
 from mnh.dataset import load_datasets
 from mnh.utils_vedo import visualize_geometry
 from mnh.stats import StatsLogger
@@ -50,7 +51,7 @@ def main(cfg: DictConfig):
         print('[Init] initialize plane geometry ...')
         points = train_dataset.dense_points.to(device)
         print('#points= {}'.format(points.size(0)))
-        if 'replica' in cfg.data.path:
+        if 'replica' in cfg.data.path or 'scanner' in cfg.data.path:
             model.plane_geo.initialize_with_box(
                 points, 
                 lrf_neighbors=cfg.model.init.lrf_neighbors,

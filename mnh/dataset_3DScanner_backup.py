@@ -1,19 +1,26 @@
 import os
+import argparse
+import vedo
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 from pytorch3d.renderer import PerspectiveCameras
-from .utils_camera import get_ndc_grid
-from .utils import get_image_tensors, get_depth_and_confidence, random_sample_points
+from .utils import random_sample_points, get_image_tensors, get_depth_and_confidence
 
 """
-replica data format
+tat data format
 """
 DEPTH_WIDTH = 256
 DEPTH_HEIGHT = 192
 
 
 def get_camera_intrinsic(path):
+    # with open(pose_fname, "r") as f:
+    #     cam_pose_lines = f.readlines()
+    # R, T = [], []
+    # for line in cam_pose_lines:
+    #     line_data_list = line.split(' ')
+
     with open(path, 'r') as file:
         lines = file.readlines()
         lines = lines[0].split(' ')  # fx 0 cx 0 fy cy 0 0 1
@@ -22,14 +29,15 @@ def get_camera_intrinsic(path):
         px, py = float(lines[2]), float(lines[5])
     return [W, H, fx, fy, px, py]
 
-def ndc_to_screen(intrinsic):
+
+def screen_to_ndc(intrinsic):
     W, H, fx, fy, px, py = intrinsic
-    # convert from NDC space to screen space
+    # convert from screen space to NDC space
     half_w, half_h = W / 2, H / 2
-    fx_new = fx * half_w
-    fy_new = fy * half_h
-    px_new = -(px * half_w) + half_w
-    py_new = -(py * half_h) + half_h
+    fx_new = fx / half_w
+    fy_new = fy / half_h
+    px_new = -(px - half_w) / half_w
+    py_new = -(py - half_h) / half_h
     return [W, H, fx_new, fy_new, px_new, py_new]
 
 
@@ -37,13 +45,11 @@ class ScannerDataset(Dataset):
     def __init__(
             self,
             folder: str,
-            focal_length: float = 2.7778,
             read_points: bool = False,
+            sample_rate: float = 0.1,
             batch_points: int = 10000
-            # read_points: bool = False,
-            # sample_rate: float = 0.1,
-            # batch_points: int = 10000
     ):
+
         pose_fname = os.path.join(folder, 'poses.txt')
         with open(pose_fname, "r") as f:
             cam_pose_lines = f.readlines()
@@ -72,24 +78,22 @@ class ScannerDataset(Dataset):
 
         intrinsic = get_camera_intrinsic(os.path.join(folder, 'intrinsic.txt'))
         self.intrinsic = intrinsic
+
+        # convert to NDC coordinates
+        intrinsic = screen_to_ndc(intrinsic)
         W, H, fx, fy, px, py = intrinsic
+
         self.focal_length = ((fx, fy),)
         self.principal_point = ((px, py),)
-
-        #TODO : check  intrinsic : ndc to screen
-        #
-        # self.focal_length = ((focal_length, focal_length),)
-        # self.principal_point = ((0, 0),)
-        # intrinsic = [512, 512, focal_length, focal_length, 0, 0]
-        # self.intrinsic = ndc_to_screen(intrinsic)  # W, H, fx, fy, px, py
-
         cameras = []
         for i in range(R.size(0)):
             cam = PerspectiveCameras(
-                focal_length=self.focal_length,
-                principal_point=self.principal_point,
+                focal_length=((fx, fy),),
+                principal_point=((px, py),),
                 R=R[i][None],
-                T=T[i][None]
+                T=T[i][None],
+                # image_size=((H,W),),
+                # in_ndc=True
             )
             cameras.append(cam)
         self.cameras = cameras
@@ -97,9 +101,10 @@ class ScannerDataset(Dataset):
         images = get_image_tensors(os.path.join(folder, 'images'))
         self.images = images
 
-        depth, confi = get_depth_and_confidence(folder) # (N, h, w)
+        depth, confi = get_depth_and_confidence(folder)
         self.depth, self.confidence = depth, confi
 
+        self.sparse_points = None
         self.dense_points = None
         self.have_points = read_points
         self.batch_points = batch_points
@@ -116,7 +121,7 @@ class ScannerDataset(Dataset):
                 points.append(line_data_list[:3])
 
             dense_points = torch.tensor(np.array(points), dtype=torch.float32)
-            # dense_points = random_sample_points(dense_points, sample_rate)
+            dense_points = random_sample_points(dense_points, sample_rate)
             self.dense_points = dense_points
 
     def get_camera_centers(self):
@@ -139,44 +144,26 @@ class ScannerDataset(Dataset):
         data = {
             'camera': self.cameras[index],
             'color': self.images[index],
-            'depth': self.depths[index],
             'points': points,
+            'depth': self.depth[index],
             'confidence': self.confidence[index],
         }
         return data
 
 
-def unproject_depth_points(depth, camera):
-    '''
-    Unproject depth points into world coordinates
-    '''
-    # print(camera.get_full_projection_transform().get_matrix())
-    size = list(depth.size())
-    ndc_grid = get_ndc_grid(size).to(depth.device)  # (h, w)
-    ndc_grid[..., -1] = depth
-    xy_depth = ndc_grid.view(1, -1, 3)
-    points = camera.unproject_points(xy_depth)[0]
-    return points
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-folder')
+    args = parser.parse_args()
+
+    dataset = ScannerDataset(args.folder, read_points=True, sample_rate=0.2)
+    data = dataset[0]
+    points = data['points']
+    points_dense = dataset.dense_points
+    print('dense points: {}'.format(points_dense.size()))
+    points = vedo.Points(points_dense)
+    vedo.show(points, axes=1)
 
 
-def dataset_to_depthpoints(dataset, point_num=None):
-    '''
-    Unproject all depth points within dataset into world coordinates
-    Args
-        dataset
-    Return
-        points: (point_num, 3)
-    '''
-    points_all = []
-    for i in range(len(dataset)):
-        data = dataset[i]
-        depth = data['depth']
-        camera = data['camera']
-        points = unproject_depth_points(depth, camera)
-        points_all.append(points)
-
-    points = torch.cat(points_all, dim=0)
-    if point_num is not None:
-        sample_idx = torch.randperm(points.size(0))[:point_num]
-        points = points[sample_idx]
-    return points
+if __name__ == '__main__':
+    main()

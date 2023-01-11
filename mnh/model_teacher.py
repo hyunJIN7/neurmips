@@ -84,13 +84,15 @@ class ModelTeacher(nn.Module):
 
     def ray_plane_intersect(self, camera, ndc_points):
         '''
+        Args
+            ndc_points: (point_n, 3), H*W에서 n_train_sample 만 샘플링된 곳의 (x,y,1)좌표값 (-1,1)범위
         Return
             world_points: (plane_n, point_n, 3)
             planes_points: (plane_n, point_n, 2)
             planes_depth:  (plane_n, point_n)
             hit:          (plane_n, point_n)
         '''
-        planes_basis = self.plane_geo.basis()
+        planes_basis = self.plane_geo.basis()  #TODO : HERE!!!!!!!!!!!
         planes_center = self.plane_geo.position() #(plane_n, 3)
         planes_depth, world_points = ray_plane_intersection(
             planes_basis,
@@ -186,7 +188,7 @@ class ModelTeacher(nn.Module):
     ):
         '''
         Args
-            ndc_points: (point_n, 3)
+            ndc_points: (point_n, 3), H*W에서 n_train_sample 만 샘플링된 곳의 (x,y,1)좌표값 (-1,1)범위
             camera: pytorch3d camera
         '''
         world_points, _, planes_depth, hit = self.ray_plane_intersect(camera, ndc_points)
